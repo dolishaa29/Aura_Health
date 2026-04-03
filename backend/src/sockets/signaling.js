@@ -49,6 +49,18 @@ export const setupSignaling = (io) => {
       }
     });
 
+    socket.on("room-chat", ({ roomId, message }) => {
+      if (!roomId || !message || typeof message !== "string") return;
+      const fromUserId = socketUserMap.get(socket.id);
+      if (!fromUserId) return;
+      socket.to(roomId).emit("room-chat", {
+        roomId,
+        message: message.slice(0, 4000),
+        fromUserId,
+        timestamp: new Date().toISOString()
+      });
+    });
+
     socket.on("join-appointment-room", async ({ roomId, appointmentId }) => {
       socket.join(roomId);
       if (appointmentId) {

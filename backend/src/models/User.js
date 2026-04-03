@@ -28,6 +28,24 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true
     },
+    designation: {
+      type: String,
+      trim: true
+    },
+    bio: {
+      type: String,
+      trim: true,
+      maxlength: 2000
+    },
+    experienceYears: {
+      type: Number,
+      min: 0,
+      max: 80
+    },
+    consultationFee: {
+      type: Number,
+      min: 0
+    },
     isOnline: {
       type: Boolean,
       default: false

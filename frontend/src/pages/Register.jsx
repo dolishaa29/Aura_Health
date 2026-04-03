@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { HeartPulse } from "lucide-react";
 
 const Register = () => {
   const { register } = useAuth();
@@ -8,9 +9,7 @@ const Register = () => {
   const [form, setForm] = useState({
     name: "",
     email: "",
-    password: "",
-    role: "patient",
-    specialization: ""
+    password: ""
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -24,14 +23,8 @@ const Register = () => {
     setError(null);
     setLoading(true);
     try {
-      const payload = { ...form };
-      if (payload.role !== "doctor") {
-        delete payload.specialization;
-      }
-      const user = await register(payload);
-      if (user.role === "doctor") navigate("/doctor");
-      else if (user.role === "admin") navigate("/admin");
-      else navigate("/patient");
+      await register(form);
+      navigate("/patient");
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to register");
     } finally {
@@ -40,86 +33,65 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-56px)] flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg">
-        <h1 className="text-2xl font-semibold mb-1">Create an account</h1>
-        <p className="text-sm text-slate-400 mb-6">
-          Register as a patient, doctor, or admin.
-        </p>
+    <div className="min-h-[calc(100vh-56px)] flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900 to-slate-950 p-8 shadow-2xl">
+        <div className="flex justify-center mb-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/30">
+            <HeartPulse className="h-7 w-7" />
+          </div>
+        </div>
+        <h1 className="text-2xl font-bold text-center mb-1">Create account</h1>
+        <p className="text-sm text-slate-500 text-center mb-6">New patient registration.</p>
         {error && (
-          <p className="mb-3 text-sm text-red-400 bg-red-950/40 border border-red-900 rounded-md px-3 py-2">
+          <p className="mb-4 text-sm text-rose-400 bg-rose-950/40 border border-rose-900/60 rounded-xl px-3 py-2">
             {error}
           </p>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm text-slate-300 mb-1">Name</label>
+            <label className="block text-xs text-slate-400 mb-1.5">Full name</label>
             <input
               name="name"
               value={form.name}
               onChange={handleChange}
-              className="w-full px-3 py-2 rounded-md bg-slate-950 border border-slate-800 focus:border-primary-500"
+              className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 focus:border-emerald-500/50 text-sm"
               required
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-300 mb-1">Email</label>
+            <label className="block text-xs text-slate-400 mb-1.5">Email</label>
             <input
               type="email"
               name="email"
               value={form.email}
               onChange={handleChange}
-              className="w-full px-3 py-2 rounded-md bg-slate-950 border border-slate-800 focus:border-primary-500"
+              className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 focus:border-emerald-500/50 text-sm"
               required
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-300 mb-1">Password</label>
+            <label className="block text-xs text-slate-400 mb-1.5">Password</label>
             <input
               type="password"
               name="password"
               value={form.password}
               onChange={handleChange}
-              className="w-full px-3 py-2 rounded-md bg-slate-950 border border-slate-800 focus:border-primary-500"
+              className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 focus:border-emerald-500/50 text-sm"
               required
+              minLength={6}
             />
           </div>
-          <div>
-            <label className="block text-sm text-slate-300 mb-1">Role</label>
-            <select
-              name="role"
-              value={form.role}
-              onChange={handleChange}
-              className="w-full px-3 py-2 rounded-md bg-slate-950 border border-slate-800 focus:border-primary-500"
-            >
-              <option value="patient">Patient</option>
-              <option value="doctor">Doctor</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-          {form.role === "doctor" && (
-            <div>
-              <label className="block text-sm text-slate-300 mb-1">Specialization</label>
-              <input
-                name="specialization"
-                value={form.specialization}
-                onChange={handleChange}
-                className="w-full px-3 py-2 rounded-md bg-slate-950 border border-slate-800 focus:border-primary-500"
-                required={form.role === "doctor"}
-              />
-            </div>
-          )}
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-md bg-primary-500 hover:bg-green-500 text-slate-950 font-medium disabled:bg-slate-700"
+            className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold disabled:opacity-50 transition-colors"
           >
-            {loading ? "Creating account..." : "Create account"}
+            {loading ? "Creating…" : "Create account"}
           </button>
         </form>
-        <p className="mt-4 text-sm text-slate-400">
+        <p className="mt-6 text-sm text-center text-slate-500">
           Already have an account?{" "}
-          <Link to="/login" className="text-primary-500 hover:underline">
+          <Link to="/login" className="text-emerald-400 hover:underline font-medium">
             Sign in
           </Link>
         </p>
@@ -129,4 +101,3 @@ const Register = () => {
 };
 
 export default Register;
-

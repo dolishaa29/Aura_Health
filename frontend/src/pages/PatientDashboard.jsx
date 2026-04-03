@@ -1,7 +1,20 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getSocket } from "../services/socket.js";
+import SkinAnalyzer from "../components/SkinAnalyzer.jsx";
+import MedicalReportAnalyzer from "../components/MedicalReportAnalyzer.jsx";
+import {
+  Calendar,
+  MessageCircle,
+  Stethoscope,
+  Video,
+  Activity,
+  ChevronRight,
+  Sparkles,
+  AlertCircle
+} from "lucide-react";
 
 const PatientDashboard = () => {
   const { user, token } = useAuth();
@@ -12,6 +25,7 @@ const PatientDashboard = () => {
   const [chatTarget, setChatTarget] = useState(null);
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState([]);
+  const [bookingMsg, setBookingMsg] = useState(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -59,21 +73,18 @@ const PatientDashboard = () => {
 
   const createAppointment = async (e) => {
     e.preventDefault();
+    setBookingMsg(null);
     await axios.post(
       "/appointments",
-      {
-        doctorId: form.doctorId,
-        scheduledAt: form.scheduledAt
-      },
-      {
-        headers: { Authorization: `Bearer ${token}` }
-      }
+      { doctorId: form.doctorId, scheduledAt: form.scheduledAt },
+      { headers: { Authorization: `Bearer ${token}` } }
     );
     const res = await axios.get("/appointments/mine", {
       headers: { Authorization: `Bearer ${token}` }
     });
     setAppointments(res.data.appointments || []);
     setForm({ doctorId: "", scheduledAt: "" });
+    setBookingMsg("Appointment requested.");
   };
 
   const joinCall = (appt) => {
@@ -82,8 +93,9 @@ const PatientDashboard = () => {
   };
 
   const startChat = (appt) => {
-    if (!appt.doctorId?._id) return;
-    setChatTarget(appt.doctorId._id);
+    const docId = appt.doctorId?._id || appt.doctorId;
+    if (!docId) return;
+    setChatTarget(docId);
   };
 
   const sendChat = () => {
@@ -91,10 +103,7 @@ const PatientDashboard = () => {
     const socket = getSocket(user.id);
     if (!socket) return;
     const message = chatInput.trim();
-    socket.emit("private-message", {
-      toUserId: chatTarget,
-      message
-    });
+    socket.emit("private-message", { toUserId: chatTarget, message });
     setChatMessages((prev) => [
       ...prev,
       { fromUserId: user.id, message, timestamp: new Date().toISOString() }
@@ -102,160 +111,272 @@ const PatientDashboard = () => {
     setChatInput("");
   };
 
+  const upcoming = appointments.filter(
+    (a) => a.status !== "completed" && new Date(a.scheduledAt) >= new Date(new Date().setHours(0, 0, 0, 0))
+  );
+
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
-      <section className="border border-slate-800 rounded-xl p-4 bg-slate-900/60">
-        <h2 className="text-lg font-semibold mb-3">Book Appointment</h2>
-        <form onSubmit={createAppointment} className="grid gap-3 md:grid-cols-3">
-          <div className="md:col-span-1">
-            <label className="block text-sm text-slate-300 mb-1">Doctor</label>
-            <select
-              name="doctorId"
-              value={form.doctorId}
-              onChange={handleChange}
-              className="w-full px-3 py-2 rounded-md bg-slate-950 border border-slate-800 focus:border-primary-500 text-sm"
-              required
-            >
-              <option value="">Select doctor</option>
-              {doctors.map((d) => (
-                <option key={d._id} value={d._id}>
-                  {d.name} {d.specialization ? `(${d.specialization})` : ""}
-                </option>
-              ))}
-            </select>
+    <div className="relative min-h-[calc(100vh-56px)]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_60%_at_50%_-10%,rgba(34,197,94,0.12),transparent)]" />
+      <div className="relative max-w-6xl mx-auto px-4 py-8 space-y-10">
+        {/* Hero */}
+        <section className="rounded-3xl border border-slate-800/80 bg-gradient-to-br from-slate-900/95 via-slate-950 to-emerald-950/20 p-8 sm:p-10 overflow-hidden">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="space-y-2">
+              <p className="text-sm text-emerald-400/90 font-medium flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Your health hub
+              </p>
+              <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+                Hi, {user?.name?.split(" ")[0] || "there"}
+              </h1>
+              <p className="text-slate-400 max-w-lg">
+                Book specialists, join video visits, chat with your doctor, and use AI tools — all
+                in one calm, modern place.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                to="/doctors"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-500 text-slate-950 font-semibold text-sm shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 transition-colors"
+              >
+                <Stethoscope className="h-4 w-4" />
+                Find doctors
+              </Link>
+              <Link
+                to="/emergency"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl border border-rose-500/50 bg-rose-500/10 text-rose-100 font-semibold text-sm hover:bg-rose-500/20 transition-colors"
+              >
+                <AlertCircle className="h-4 w-4" />
+                Emergency assist
+              </Link>
+            </div>
           </div>
-          <div className="md:col-span-1">
-            <label className="block text-sm text-slate-300 mb-1">Schedule</label>
+        </section>
+
+        {/* Quick stats */}
+        <section className="grid sm:grid-cols-3 gap-4">
+          {[
+            { label: "Upcoming", value: upcoming.length, icon: Calendar },
+            { label: "Doctors available", value: doctors.filter((d) => d.isOnline).length, icon: Activity },
+            { label: "Total visits", value: appointments.length, icon: Video }
+          ].map(({ label, value, icon: Icon }) => (
+            <div
+              key={label}
+              className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 flex items-center gap-4"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-800 text-emerald-400">
+                <Icon className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
+                <p className="text-2xl font-bold text-white">{value}</p>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        {/* Book inline */}
+        <section className="rounded-3xl border border-slate-800 bg-slate-900/40 p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-emerald-400" />
+                Quick book
+              </h2>
+              <p className="text-sm text-slate-500 mt-1">
+                Or browse full profiles in{" "}
+                <Link to="/doctors" className="text-emerald-400 hover:underline">
+                  Find doctors
+                </Link>
+                .
+              </p>
+            </div>
+          </div>
+          <form onSubmit={createAppointment} className="grid gap-4 md:grid-cols-12 items-end">
+            <div className="md:col-span-5">
+              <label className="block text-xs text-slate-400 mb-1.5">Doctor</label>
+              <select
+                name="doctorId"
+                value={form.doctorId}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-sm focus:border-emerald-500/50"
+                required
+              >
+                <option value="">Select a doctor</option>
+                {doctors.map((d) => (
+                  <option key={d._id} value={d._id}>
+                    {d.name}
+                    {d.designation ? ` — ${d.designation}` : ""}
+                    {d.specialization ? ` (${d.specialization})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="md:col-span-4">
+              <label className="block text-xs text-slate-400 mb-1.5">Date & time</label>
+              <input
+                type="datetime-local"
+                name="scheduledAt"
+                value={form.scheduledAt}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-sm focus:border-emerald-500/50"
+                required
+              />
+            </div>
+            <div className="md:col-span-3">
+              <button
+                type="submit"
+                className="w-full py-3 rounded-xl bg-emerald-500 text-slate-950 font-semibold text-sm hover:bg-emerald-400 transition-colors"
+              >
+                Request appointment
+              </button>
+            </div>
+          </form>
+          {bookingMsg && <p className="mt-3 text-sm text-emerald-400">{bookingMsg}</p>}
+        </section>
+
+        {/* Appointments */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold">Appointments</h2>
+          <div className="grid gap-4">
+            {appointments.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-slate-700 p-10 text-center text-slate-500">
+                No appointments yet. Book above or from a doctor&apos;s profile.
+              </div>
+            )}
+            {appointments.map((appt) => {
+              const doc = appt.doctorId;
+              return (
+                <div
+                  key={appt._id}
+                  className="group rounded-2xl border border-slate-800 bg-slate-900/50 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:border-emerald-500/30 transition-colors"
+                >
+                  <div className="space-y-1">
+                    <p className="font-semibold text-white flex flex-wrap items-center gap-2">
+                      {doc?.name || "Doctor"}
+                      {doc?.designation && (
+                        <span className="text-xs font-normal text-emerald-400/90">{doc.designation}</span>
+                      )}
+                    </p>
+                    <p className="text-sm text-slate-400">
+                      {doc?.specialization}{" "}
+                      {doc?.consultationFee != null && (
+                        <span className="text-slate-500">• ₹{doc.consultationFee}</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {new Date(appt.scheduledAt).toLocaleString()} ·{" "}
+                      <span className="uppercase text-emerald-500/80">{appt.status}</span>
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {doc?._id && (
+                      <Link
+                        to={`/doctors/${doc._id}`}
+                        className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-slate-800 text-xs font-medium hover:bg-slate-700"
+                      >
+                        Profile <ChevronRight className="h-3 w-3" />
+                      </Link>
+                    )}
+                    {appt.status === "approved" && (
+                      <button
+                        type="button"
+                        onClick={() => joinCall(appt)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 text-sm font-medium"
+                      >
+                        <Video className="h-4 w-4" />
+                        Join call
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => startChat(appt)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-600 text-sm"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      Chat
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Chat */}
+        <section className="rounded-3xl border border-slate-800 bg-slate-900/40 p-6 flex flex-col min-h-[280px]">
+          <h2 className="text-lg font-semibold mb-2 flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-emerald-400" />
+            Messages
+          </h2>
+          {!chatTarget && (
+            <p className="text-sm text-slate-500 mb-3">
+              Open an appointment and tap <strong>Chat</strong> to message your doctor.
+            </p>
+          )}
+          <div className="flex-1 border border-slate-800 rounded-xl p-3 mb-3 overflow-y-auto max-h-64 space-y-2 text-sm">
+            {chatMessages.length === 0 && (
+              <p className="text-slate-600 text-xs">No messages yet.</p>
+            )}
+            {chatMessages.map((m, idx) => (
+              <div
+                key={idx}
+                className={`flex ${m.fromUserId === user.id ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`px-3 py-2 rounded-2xl max-w-[85%] ${
+                    m.fromUserId === user.id
+                      ? "bg-emerald-500 text-slate-950 rounded-br-md"
+                      : "bg-slate-800 text-slate-100 rounded-bl-md"
+                  }`}
+                >
+                  <p>{m.message}</p>
+                  <p className="text-[10px] mt-1 opacity-70">
+                    {new Date(m.timestamp).toLocaleTimeString()}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
             <input
-              type="datetime-local"
-              name="scheduledAt"
-              value={form.scheduledAt}
-              onChange={handleChange}
-              className="w-full px-3 py-2 rounded-md bg-slate-950 border border-slate-800 focus:border-primary-500 text-sm"
-              required
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendChat()}
+              placeholder={chatTarget ? "Type a message…" : "Select chat from an appointment"}
+              disabled={!chatTarget}
+              className="flex-1 px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-sm focus:border-emerald-500/50"
             />
-          </div>
-          <div className="flex items-end">
             <button
-              type="submit"
-              className="w-full py-2.5 rounded-md bg-primary-500 text-slate-950 text-sm font-medium"
+              type="button"
+              onClick={sendChat}
+              disabled={!chatTarget || !chatInput.trim()}
+              className="px-5 py-3 rounded-xl bg-emerald-500 text-slate-950 text-sm font-medium disabled:opacity-40"
             >
-              Book
+              Send
             </button>
           </div>
-        </form>
-      </section>
-
-      <section className="border border-slate-800 rounded-xl p-4 bg-slate-900/60">
-        <h2 className="text-lg font-semibold mb-3">My Appointments</h2>
-        <div className="space-y-3">
-          {appointments.length === 0 && (
-            <p className="text-sm text-slate-400">No appointments yet.</p>
-          )}
-          {appointments.map((appt) => (
-            <div
-              key={appt._id}
-              className="border border-slate-800 rounded-xl p-4 flex items-center justify-between"
-            >
-              <div>
-                <p className="font-medium">
-                  {appt.doctorId?.name || "Doctor"}{" "}
-                  {appt.doctorId?.specialization && (
-                    <span className="text-xs text-slate-400">
-                      ({appt.doctorId.specialization})
-                    </span>
-                  )}
-                </p>
-                <p className="text-xs text-slate-400">
-                  {new Date(appt.scheduledAt).toLocaleString()} •{" "}
-                  <span className="uppercase">{appt.status}</span>
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {appt.status === "approved" && (
-                  <button
-                    onClick={() => joinCall(appt)}
-                    className="px-3 py-1.5 rounded-md bg-primary-500 text-slate-950 text-sm"
-                  >
-                    Join Call
-                  </button>
-                )}
-                <button
-                  onClick={() => startChat(appt)}
-                  className="px-3 py-1.5 rounded-md bg-slate-800 text-sm"
-                >
-                  Chat
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="border border-slate-800 rounded-xl p-4 bg-slate-900/60 flex flex-col">
-        <h2 className="text-lg font-semibold mb-2">Chat</h2>
-        {!chatTarget && (
-          <p className="text-sm text-slate-400 mb-2">
-            Select an appointment and click Chat to start talking with your doctor.
-          </p>
-        )}
-        <div className="flex-1 border border-slate-800 rounded-md p-2 mb-3 overflow-y-auto space-y-1 text-sm">
-          {chatMessages.length === 0 && (
-            <p className="text-slate-500 text-xs">No messages yet.</p>
-          )}
-          {chatMessages.map((m, idx) => (
-            <div
-              key={idx}
-              className={`flex ${m.fromUserId === user.id ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`px-2 py-1 rounded-md max-w-[80%] ${
-                  m.fromUserId === user.id
-                    ? "bg-primary-500 text-slate-950"
-                    : "bg-slate-800 text-slate-100"
-                }`}
-              >
-                <p>{m.message}</p>
-                <p className="text-[10px] mt-0.5 text-slate-200/60">
-                  {new Date(m.timestamp).toLocaleTimeString()}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="flex gap-2">
-          <input
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            placeholder={chatTarget ? "Type a message..." : "Select an appointment to chat"}
-            disabled={!chatTarget}
-            className="flex-1 px-3 py-2 rounded-md bg-slate-950 border border-slate-800 focus:border-primary-500 text-sm"
-          />
-          <button
-            onClick={sendChat}
-            disabled={!chatTarget || !chatInput.trim()}
-            className="px-3 py-2 rounded-md bg-primary-500 text-slate-950 text-sm disabled:bg-slate-700"
-          >
-            Send
-          </button>
-        </div>
-      </section>
-
-      {statusUpdates.length > 0 && (
-        <section>
-          <h3 className="text-sm font-medium text-slate-300 mb-1">Recent updates</h3>
-          <ul className="text-xs text-slate-400 list-disc list-inside space-y-0.5">
-            {statusUpdates.slice(-5).map((s, idx) => (
-              <li key={idx}>
-                Appointment {s.appointmentId} status changed to {s.status}
-              </li>
-            ))}
-          </ul>
         </section>
-      )}
+
+        <SkinAnalyzer mode="patient" />
+        <MedicalReportAnalyzer />
+
+        {statusUpdates.length > 0 && (
+          <section className="rounded-2xl border border-slate-800 bg-slate-900/30 px-4 py-3">
+            <h3 className="text-xs font-medium text-slate-500 mb-2">Recent updates</h3>
+            <ul className="text-xs text-slate-400 space-y-1">
+              {statusUpdates.slice(-5).map((s, idx) => (
+                <li key={idx}>
+                  Appointment status → <span className="text-emerald-400">{s.status}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
     </div>
   );
 };
 
 export default PatientDashboard;
-

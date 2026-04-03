@@ -8,12 +8,24 @@ import DoctorDashboard from "./pages/DoctorDashboard.jsx";
 import PatientDashboard from "./pages/PatientDashboard.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
 import VideoCall from "./pages/VideoCall.jsx";
+import Doctors from "./pages/Doctors.jsx";
+import DoctorProfile from "./pages/DoctorProfile.jsx";
+import EmergencyMode from "./pages/EmergencyMode.jsx";
+import Welcome from "./pages/Welcome.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 import { getSocket, disconnectSocket } from "./services/socket.js";
 
-const RoleRedirect = () => {
-  const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
+/** Logged-in users → dashboard; guests → role picker landing */
+const HomeGate = () => {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="min-h-[calc(100vh-56px)] flex items-center justify-center">
+        <p className="text-slate-400 text-sm">Loading...</p>
+      </div>
+    );
+  }
+  if (!user) return <Welcome />;
   if (user.role === "doctor") return <Navigate to="/doctor" replace />;
   if (user.role === "admin") return <Navigate to="/admin" replace />;
   return <Navigate to="/patient" replace />;
@@ -40,7 +52,7 @@ const App = () => {
       <Navbar />
       <main className="flex-1">
         <Routes>
-          <Route path="/" element={<RoleRedirect />} />
+          <Route path="/" element={<HomeGate />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
@@ -56,6 +68,15 @@ const App = () => {
 
           <Route element={<ProtectedRoute roles={["doctor", "patient"]} />}>
             <Route path="/video/:roomId" element={<VideoCall />} />
+          </Route>
+
+          <Route element={<ProtectedRoute roles={["patient", "doctor", "admin"]} />}>
+            <Route path="/doctors" element={<Doctors />} />
+            <Route path="/doctors/:id" element={<DoctorProfile />} />
+          </Route>
+
+          <Route element={<ProtectedRoute roles={["patient", "doctor"]} />}>
+            <Route path="/emergency" element={<EmergencyMode />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

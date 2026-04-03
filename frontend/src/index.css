@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 body {
-  @apply bg-slate-950 text-slate-50 antialiased;
+  @apply bg-slate-950 text-slate-50 antialiased font-sans;
 }
 
 input,

@@ -30,7 +30,10 @@ export const getMyAppointments = async (req, res) => {
         : { patientId: req.user._id };
 
     const appointments = await Appointment.find(filter)
-      .populate("doctorId", "name email specialization")
+      .populate(
+        "doctorId",
+        "name email specialization designation bio experienceYears consultationFee isOnline"
+      )
       .populate("patientId", "name email")
       .sort({ scheduledAt: 1 });
 

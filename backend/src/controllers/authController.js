@@ -4,9 +4,22 @@ import { generateToken } from "../utils/generateToken.js";
 
 const SALT_ROUNDS = 10;
 
+const publicUserFields = (user) => ({
+  id: user._id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  specialization: user.specialization,
+  designation: user.designation,
+  bio: user.bio,
+  experienceYears: user.experienceYears,
+  consultationFee: user.consultationFee,
+  isOnline: user.isOnline
+});
+
 export const register = async (req, res) => {
   try {
-    const { name, email, password, role, specialization } = req.body;
+    const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Name, email and password are required" });
@@ -19,12 +32,12 @@ export const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
+    // Only patients can self-register; doctors/admins are created by admin
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
-      role: role || "patient",
-      specialization: role === "doctor" ? specialization : undefined
+      role: "patient"
     });
 
     const token = generateToken(user);
@@ -40,13 +53,7 @@ export const register = async (req, res) => {
 
     return res.status(201).json({
       message: "User registered successfully",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        specialization: user.specialization
-      },
+      user: publicUserFields(user),
       token: process.env.JWT_COOKIE === "true" ? undefined : token
     });
   } catch (error) {
@@ -86,13 +93,7 @@ export const login = async (req, res) => {
 
     return res.status(200).json({
       message: "Logged in successfully",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        specialization: user.specialization
-      },
+      user: publicUserFields(user),
       token: process.env.JWT_COOKIE === "true" ? undefined : token
     });
   } catch (error) {
@@ -108,14 +109,7 @@ export const me = async (req, res) => {
     }
 
     return res.status(200).json({
-      user: {
-        id: req.user._id,
-        name: req.user.name,
-        email: req.user.email,
-        role: req.user.role,
-        specialization: req.user.specialization,
-        isOnline: req.user.isOnline
-      }
+      user: publicUserFields(req.user)
     });
   } catch (error) {
     console.error("Me error:", error.message);

@@ -1,18 +1,16 @@
-## Aurahealth 
+## Aurahealth
 
 Monorepo for the Aurahealth full-stack web application.
 
 ### Backend (`backend`)
 
-- **Stack**: Node.js, Express.js, MongoDB (Mongoose), Socket.io, JWT, bcrypt, WebRTC signaling
+- **Stack**: Node.js, Express.js, MongoDB (Mongoose), Socket.io, JWT, bcrypt, WebRTC signaling, Google Gemini
 - **Key features**:
   - JWT auth (`/api/auth/register`, `/api/auth/login`, `/api/auth/me`, `/api/auth/logout`)
-  - Roles: doctor, patient, admin (RBAC enforced with middleware)
-  - Appointment management (`/api/appointments`)
-  - Socket.io for:
-    - Online status (userId ↔ socketId map)
-    - Private chat between doctor and patient
-    - WebRTC signaling (`offer`, `answer`, `ice-candidate`)
+  - Roles: doctor, patient, admin (RBAC)
+  - Appointments (`/api/appointments`)
+  - Reports, skin analysis, emergency guidance (Gemini)
+  - Socket.io: online status, private chat, WebRTC signaling
 
 **Run backend:**
 
@@ -25,12 +23,9 @@ npm run dev
 
 ### Frontend (`frontend`)
 
-- **Stack**: React (Vite), React Router, Context API, Tailwind CSS, Socket.io-client, WebRTC APIs
+- **Stack**: React (Vite), React Router, Context API, Tailwind CSS, Socket.io-client, WebRTC
 - **Key features**:
-  - Auth pages (`/login`, `/register`)
-  - Role dashboards: doctor, patient, admin
-  - Protected routes based on role
-  - Video call page (`/video/:roomId`) using WebRTC + Socket.io
+  - Auth (`/login`, `/register`), role landing (`/`), dashboards, video call (`/video/:roomId`)
 
 **Run frontend:**
 
@@ -42,4 +37,3 @@ npm run dev
 ```
 
 By default the backend runs on `http://localhost:5000` and frontend on `http://localhost:5173`. Update `CLIENT_ORIGIN` (backend) and `VITE_API_BASE` / `VITE_SOCKET_URL` (frontend) if you change ports or deploy.
-
