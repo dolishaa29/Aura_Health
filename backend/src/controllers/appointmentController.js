@@ -58,7 +58,6 @@ export const updateAppointmentStatus = async (req, res) => {
       return res.status(404).json({ message: "Appointment not found" });
     }
 
-    // Only doctor for this appointment or admin can update
     if (
       req.user.role === "doctor" &&
       String(appointment.doctorId) !== String(req.user._id)

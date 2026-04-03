@@ -14,10 +14,16 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true
     },
+    phone: {
+      type: String,
+      trim: true,
+      sparse: true,
+      unique: true
+    },
     password: {
       type: String,
       required: true,
-      minlength: 6
+      minlength: 8
     },
     role: {
       type: String,
@@ -57,5 +63,6 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.index({ email: 1 });
+userSchema.index({ phone: 1 }, { sparse: true });
 
 export const User = mongoose.model("User", userSchema);

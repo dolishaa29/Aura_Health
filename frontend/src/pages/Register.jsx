@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { HeartPulse } from "lucide-react";
+import PhoneNumber from "../components/PhoneNumber.jsx";
+import { validateEmail, validatePassword, validatePhoneE164 } from "../utils/validation.js";
 
 const Register = () => {
   const { register } = useAuth();
@@ -9,21 +11,47 @@ const Register = () => {
   const [form, setForm] = useState({
     name: "",
     email: "",
-    password: ""
+    password: "",
+    phone: ""
   });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const validate = () => {
+    const next = {};
+    if (!form.name.trim()) next.name = "Name is required";
+    const em = validateEmail(form.email);
+    if (em) next.email = em;
+    const pw = validatePassword(form.password);
+    if (pw) next.password = pw;
+    const ph = validatePhoneE164(form.phone);
+    if (ph) next.phone = ph;
+    setFieldErrors(next);
+    return Object.keys(next).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    if (!validate()) return;
+
     setLoading(true);
     try {
-      await register(form);
+      await register({
+        name: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+        phone: form.phone
+      });
       navigate("/patient");
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to register");
@@ -47,40 +75,85 @@ const Register = () => {
             {error}
           </p>
         )}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
-            <label className="block text-xs text-slate-400 mb-1.5">Full name</label>
+            <label className="block text-xs text-slate-400 mb-1.5" htmlFor="name">
+              Full name
+            </label>
             <input
+              id="name"
               name="name"
               value={form.name}
               onChange={handleChange}
-              className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 focus:border-emerald-500/50 text-sm"
-              required
+              className={`w-full px-4 py-3 rounded-xl bg-slate-950 border text-sm ${
+                fieldErrors.name ? "border-rose-500/60" : "border-slate-700 focus:border-emerald-500/50"
+              }`}
+              autoComplete="name"
             />
+            {fieldErrors.name && (
+              <p className="mt-1.5 text-xs text-rose-400">{fieldErrors.name}</p>
+            )}
           </div>
+
           <div>
-            <label className="block text-xs text-slate-400 mb-1.5">Email</label>
+            <label className="block text-xs text-slate-400 mb-1.5" htmlFor="email">
+              Email
+            </label>
             <input
+              id="email"
               type="email"
               name="email"
               value={form.email}
               onChange={handleChange}
-              className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 focus:border-emerald-500/50 text-sm"
-              required
+              className={`w-full px-4 py-3 rounded-xl bg-slate-950 border text-sm ${
+                fieldErrors.email ? "border-rose-500/60" : "border-slate-700 focus:border-emerald-500/50"
+              }`}
+              autoComplete="email"
             />
+            {fieldErrors.email && (
+              <p className="mt-1.5 text-xs text-rose-400">{fieldErrors.email}</p>
+            )}
           </div>
+
+          <PhoneNumber
+            id="phone"
+            name="phone"
+            value={form.phone}
+            onChange={(e164) => {
+              setForm((prev) => ({ ...prev, phone: e164 }));
+              if (fieldErrors.phone) {
+                setFieldErrors((prev) => ({ ...prev, phone: undefined }));
+              }
+            }}
+            error={fieldErrors.phone}
+            defaultCountry="IN"
+          />
+
           <div>
-            <label className="block text-xs text-slate-400 mb-1.5">Password</label>
+            <label className="block text-xs text-slate-400 mb-1.5" htmlFor="password">
+              Password
+            </label>
             <input
+              id="password"
               type="password"
               name="password"
               value={form.password}
               onChange={handleChange}
-              className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 focus:border-emerald-500/50 text-sm"
-              required
-              minLength={6}
+              className={`w-full px-4 py-3 rounded-xl bg-slate-950 border text-sm ${
+                fieldErrors.password ? "border-rose-500/60" : "border-slate-700 focus:border-emerald-500/50"
+              }`}
+              autoComplete="new-password"
+              minLength={8}
             />
+            {fieldErrors.password ? (
+              <p className="mt-1.5 text-xs text-rose-400">{fieldErrors.password}</p>
+            ) : (
+              <p className="mt-1.5 text-xs text-slate-600">
+                At least 8 characters, with letters and numbers.
+              </p>
+            )}
           </div>
+
           <button
             type="submit"
             disabled={loading}
