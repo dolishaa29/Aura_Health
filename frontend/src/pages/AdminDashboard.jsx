@@ -364,7 +364,7 @@ const AdminDashboard = () => {
                     onClick={() => setEditingId(null)}
                     className="flex-1 py-2.5 rounded-xl bg-slate-800"
                   >
-                    Cancel
+                    Cancell
                   </button>
                 </div>
               </form>
